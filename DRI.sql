@@ -49,9 +49,9 @@ WHERE		[User] = @User
 IF NOT EXISTS(SELECT 1 FROM Configuration.[Name] WHERE [Value] = 'DRI')
 	BEGIN
 	INSERT INTO Configuration.[Name]
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		('DRI', @UserId, @Now)
+		('DRI', @UserId, @Now, 2)
 	SELECT @NameId = SCOPE_IDENTITY();
 	END
 ELSE
@@ -62,9 +62,9 @@ IF NOT EXISTS(SELECT 1 FROM Configuration.[Object] WHERE NameId = @NameId AND Pa
 	BEGIN
 	SELECT @ObjectTypeId = ObjectTypeId FROM Configuration.[ObjectType] WHERE [Code] = 'SC'
 	INSERT INTO Configuration.[Object]
-		(ParentObjectId, NameId, ObjectTypeId, SystemTime, SystemUserId)
+		(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(NULL, @NameId, @ObjectTypeId, @Now, @UserId)
+		(NULL, @NameId, @ObjectTypeId, @UserId, @Now, 2)
 	SELECT @ObjectId = ObjectId FROM Configuration.[Object] WHERE NameId = @NameId AND ParentObjectId = ObjectId;
 	END
 ELSE
