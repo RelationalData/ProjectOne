@@ -417,8 +417,10 @@ CREATE TABLE Configuration.ObjectType(
 	ObjectTypeId	tinyint			IDENTITY(1,1)						NOT NULL,
 	Code			varchar(8)		COLLATE Latin1_General_CI_AS_KS_WS	NOT NULL,
 	[Name]			sysname			COLLATE Latin1_General_CI_AS_KS_WS	NOT NULL,
-	[Description]	Description256						NOT NULL,
-	SystemTime		datetime2		DEFAULT GETDATE()	NOT NULL,
+	[Description]	Description256										NOT NULL,
+	SystemUserId	smallint		DEFAULT 1							NOT NULL,
+	SystemTime		datetime2		DEFAULT GETDATE()					NOT NULL,
+	ExecutionId		int												NOT NULL,
 CONSTRAINT [PK_ConfigurationObjectType] PRIMARY KEY CLUSTERED 
 	(ObjectTypeId ASC)
 ON Auditing,
@@ -554,6 +556,7 @@ CREATE TABLE Geographic.Place(
 	AbbreviationNameId	int								NOT NULL,
 	SystemUserId		smallint	DEFAULT 1			NOT NULL,
 	SystemTime			datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId			int								NOT NULL,
 CONSTRAINT [PK_GeographicPlace] PRIMARY KEY CLUSTERED 
 	(PlaceId ASC)
 ON Geographic,
@@ -586,6 +589,7 @@ CREATE TABLE Geographic.[Name](
 	[Value]			Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId			int							NOT NULL,
 CONSTRAINT [PK_GeographicName] PRIMARY KEY CLUSTERED 
 	(NameId ASC)
 ON Geographic,
@@ -605,6 +609,7 @@ CREATE TABLE Institution.[Level](
 	[Name]			Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_InstitutionLevel] PRIMARY KEY CLUSTERED 
 	(LevelId ASC)
 ON Infrastructure,
@@ -617,6 +622,7 @@ CREATE TABLE Institution.[Name](
 	[Value]			Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_InstitutionName] PRIMARY KEY CLUSTERED 
 	(NameId ASC)
 ON Infrastructure,
@@ -633,6 +639,7 @@ CREATE TABLE Institution.Organization(
 	Active					bit								NOT NULL,
 	SystemUserId			smallint	DEFAULT 1			NOT NULL,
 	SystemTime				datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId				int								NOT NULL,
 CONSTRAINT [PK_InstitutionOrganization] PRIMARY KEY CLUSTERED 
 	(OrganizationId ASC)
 ON Infrastructure,
@@ -675,6 +682,7 @@ CREATE TABLE Person.NameElement(
 	[Value]				Name64							NOT NULL,
 	SystemUserId		smallint	DEFAULT 1			NOT NULL,
 	SystemTime			datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId			int								NOT NULL,
 CONSTRAINT [PK_PersonNameElement] PRIMARY KEY CLUSTERED 
 	(NameElementId ASC)
 ON Person,
@@ -688,6 +696,7 @@ CREATE TABLE Person.Individual(
 --The SHA2_256 hash of the composite of the name elements of the individual.
 	SystemUserId	smallint		DEFAULT 1			NOT NULL,
 	SystemTime		datetime2		DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int									NOT NULL,
 CONSTRAINT [PK_PersonIndividual] PRIMARY KEY CLUSTERED 
 	(IndividualId ASC)
 ON Person,
@@ -700,6 +709,7 @@ CREATE TABLE Person.NameCategory(
 	[Value]			Name32							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_PersonNameCategory] PRIMARY KEY CLUSTERED 
 	(NameCategoryId ASC)
 ON Person,
@@ -716,6 +726,7 @@ CREATE TABLE Person.IndividualNameElement(
 	[Current]		bit								NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_PersonIndividualNameElement] PRIMARY KEY CLUSTERED 
 	(IndividualId ASC, NameElementId ASC, NameCategoryId ASC, SortOrder ASC, Active ASC)
 ON Person) ON Person
@@ -749,6 +760,7 @@ CREATE TABLE Postal.Code(
 	[Value]			Name16							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_PostalCode] PRIMARY KEY CLUSTERED 
 	(CodeId ASC)
 ON Geographic,
@@ -761,6 +773,7 @@ CREATE TABLE Postal.[DeliveryLine] (
 	[Value]			Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_PostalDeliveryLine] PRIMARY KEY CLUSTERED 
 	(DeliveryLineId ASC)
 ON Geographic,
@@ -775,6 +788,7 @@ CREATE TABLE Postal.[Address](
 	[HashAddress]	varbinary(32)					NOT NULL,--The SHA2_256 hash of the composite of the delivery lines of the address + PostalCodeId
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_PostalAddress] PRIMARY KEY CLUSTERED 
 	(AddressId ASC)
 ON Geographic,
@@ -790,6 +804,7 @@ CREATE TABLE Postal.[AddressDeliveryLine] (
 	[Current]		bit								NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_PostalAddressDeliveryLine] PRIMARY KEY CLUSTERED 
 	(AddressId ASC, DeliveryLineId ASC, ValidTime ASC)
 ON Geographic) ON Geographic
@@ -827,9 +842,11 @@ The following Oracle URL demonstrates this concept.
 https://docs.oracle.com/cd/B14099_19/web.1012/b15901/mapping003.htm#i1143147
 */
 CREATE TABLE Security.Domain(
-	DomainId	int								NOT NULL,--References Telecom.Domain.DomainId(PK)
-	[Name]		sysname							NOT NULL,--LDAP FQDN name
-	SystemTime	datetime2	DEFAULT GETDATE()	NOT NULL,
+	DomainId		int								NOT NULL,--References Telecom.Domain.DomainId(PK)
+	[Name]			sysname							NOT NULL,--LDAP FQDN name
+	SystemUserId	smallint	DEFAULT 1			NOT NULL,
+	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_Domain] PRIMARY KEY CLUSTERED
 	(DomainId ASC)
 ON Infrastructure,
@@ -838,9 +855,11 @@ CONSTRAINT [AK_Domain] UNIQUE NONCLUSTERED
 ON Infrastructure) ON Infrastructure
 GO
 CREATE TABLE Security.[Name](
-	NameId		int			IDENTITY(1,1)		NOT NULL,
-	[Value]		sysname							NOT NULL,
-	SystemTime	datetime2	DEFAULT GETDATE()	NOT NULL,
+	NameId			int			IDENTITY(1,1)		NOT NULL,
+	[Value]			sysname							NOT NULL,
+	SystemUserId	smallint	DEFAULT 1			NOT NULL,
+	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_SecurityName] PRIMARY KEY CLUSTERED
 	(NameId ASC)
 ON Infrastructure,
@@ -855,6 +874,7 @@ CREATE TABLE Security.[User](
 	Active			bit								NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_SecurityUser] PRIMARY KEY CLUSTERED 
 	(UserId ASC)
 ON Infrastructure,
@@ -869,6 +889,7 @@ CREATE TABLE Security.[Group](
 	Active			bit								NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_SecurityGroup] PRIMARY KEY CLUSTERED 
 	(GroupId ASC)
 ON Infrastructure,
@@ -884,6 +905,7 @@ CREATE TABLE Security.UserGroup(
 	[Current]		bit									NOT NULL,
 	SystemUserId	smallint		DEFAULT 1			NOT NULL,
 	SystemTime		datetime2		DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int									NOT NULL,
 CONSTRAINT [PK_SecurityUserGroup] PRIMARY KEY CLUSTERED 
 	(UserId ASC, GroupId ASC, ValidTime ASC)
 ON Infrastructure) ON Infrastructure
@@ -914,6 +936,7 @@ CREATE TABLE Telecom.Domain(
 	TopLevelDomainId	smallint						NOT NULL,
 	SystemUserId		smallint	DEFAULT 1			NOT NULL,
 	SystemTime			datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId			int								NOT NULL,
 CONSTRAINT [PK_TelecomDomain] PRIMARY KEY CLUSTERED 
 	(DomainId ASC)
 ON Infrastructure,
@@ -926,6 +949,7 @@ CREATE TABLE Telecom.LabelUse(
 	[Value]			varchar(16)						NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_TelecomLabelUse] PRIMARY KEY CLUSTERED 
 	(LabelUseId ASC)
 ON Infrastructure,
@@ -938,6 +962,7 @@ CREATE TABLE Telecom.[Label](
 	[Value]			varchar(63)						NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_TelecomLabel] PRIMARY KEY CLUSTERED 
 	(LabelId ASC)
 ON Infrastructure,
@@ -950,6 +975,7 @@ CREATE TABLE Telecom.[Scheme](
 	[Value]			varchar(16)						NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_TelecomScheme] PRIMARY KEY CLUSTERED 
 	(SchemeId ASC)
 ON Infrastructure,
@@ -962,6 +988,7 @@ CREATE TABLE Telecom.TopLevelDomain(
 	[Value]				varchar(63)						NOT NULL,
 	SystemUserId		smallint	DEFAULT 1			NOT NULL,
 	SystemTime			datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId			int								NOT NULL,
 CONSTRAINT [PK_TelecomTopLevelDomain] PRIMARY KEY CLUSTERED 
 	(TopLevelDomainId ASC)
 ON Infrastructure,
@@ -975,6 +1002,7 @@ CREATE TABLE Telecom.Place(
 	Active			bit								NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_TelecomPlace] PRIMARY KEY CLUSTERED 
 	(PlaceId ASC)
 ON Infrastructure,
@@ -988,6 +1016,7 @@ CREATE TABLE Telecom.Email(
 	LocalPart		Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_TelecomEmail] PRIMARY KEY CLUSTERED 
 	(EmailId ASC)
 ON Infrastructure,
@@ -1002,6 +1031,7 @@ CREATE TABLE Telecom.[Url](
 	SchemeId		tinyint							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_TelecomUrl] PRIMARY KEY CLUSTERED 
 	(UrlId ASC)
 ON Infrastructure,
@@ -1019,6 +1049,7 @@ CREATE TABLE Telecom.UrlLabel(
 	[Current]		bit									NOT NULL,
 	SystemUserId	smallint		DEFAULT 1			NOT NULL,
 	SystemTime		datetime2		DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int									NOT NULL,
 CONSTRAINT [PK_TelecomUrlLabel] PRIMARY KEY CLUSTERED 
 	(UrlId ASC, LabelId ASC, LabelUseId ASC, SortOrder ASC, ValidTime ASC)
 ON Infrastructure) ON Infrastructure
@@ -1050,6 +1081,7 @@ CREATE TABLE Workflow.Task(
 	[Name]			Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_WorkflowTask] PRIMARY KEY CLUSTERED 
 	(TaskId ASC)
 ON Person,
@@ -1062,6 +1094,7 @@ CREATE TABLE Workflow.[Status](
 	[Value]			Name64							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_WorkflowStatus] PRIMARY KEY CLUSTERED 
 	(StatusId ASC)
 ON Person,
@@ -1075,6 +1108,7 @@ CREATE TABLE Workflow.TaskStatus(
 	ValidTime		datetime2						NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_WorkflowTaskStatus] PRIMARY KEY CLUSTERED 
 	(TaskId ASC)
 ON Person) ON Person
@@ -1083,6 +1117,9 @@ PRINT '									...									';
 GO
 PRINT 'TABLES CREATED.';
 GO
+--=================================================================================
+--=====CREATE MATERIALIZED VIEWS===================================================
+--=================================================================================
 PRINT 'CREATE MATERIALIZED VIEWS...';
 GO
 PRINT '	Auditing...'
@@ -1239,113 +1276,116 @@ DECLARE @DatabaseName sysname, @Domain sysname, @DomainId int, @User sysname, @U
 DECLARE @Difference bigint, @Message nvarchar(max), @StartTime datetime2, @ParentExecutionId int;
 SELECT @DatabaseName = DatabaseName FROM #Database
 SELECT @Domain = @DatabaseName + '.com';
-PRINT 'SEED SECURITY...'
+
+PRINT 'SEED TELECOM...'
 BEGIN
 INSERT INTO Telecom.TopLevelDomain
-	([Value], SystemTime)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('', @Now);
+	('', 1, @Now, 1);
 SELECT @TopLevelDomainId = SCOPE_IDENTITY();
 SELECT	@User = RIGHT([name], LEN([name]) - PATINDEX('%\%', [name])),
 		@Domain = LEFT([name], PATINDEX('%\%', [name]) - 1)
 	FROM sys.server_principals 
 WHERE principal_id = SUSER_ID();
 INSERT INTO Telecom.[Label]
-	([Value], SystemTime)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	(@Domain, @Now);
+	(@Domain, 1, @Now, 1);
 SELECT @LabelId = SCOPE_IDENTITY();
 INSERT INTO Telecom.Domain
-	(LabelId, TopLevelDomainId, SystemTime)
+	(LabelId, TopLevelDomainId, SystemUserId, SystemTime, ExecutionId)
 VALUES
-	(@LabelId, @TopLevelDomainId, @Now);
+	(@LabelId, @TopLevelDomainId, 1, @Now, 1);
 SELECT @DomainId = SCOPE_IDENTITY();
+PRINT 'SEED SECURITY...'
 INSERT INTO Security.Domain
-	(DomainId, [Name], SystemTime)
+	(DomainId, [Name], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	(@DomainId, @Domain, @Now);
+	(@DomainId, @Domain, 1, @Now, 1);
 INSERT INTO Security.[Name]
-	([Value], SystemTime)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	(@User, @Now)
+	(@User, 1, @Now, 1)
 SELECT @NameId = SCOPE_IDENTITY();
 INSERT INTO Security.[User]
-	(DomainId, NameId, Active, SystemUserId, SystemTime)
+	(DomainId, NameId, Active, SystemUserId, SystemTime, ExecutionId)
 VALUES
-	(@DomainId, @NameId, 1, 1, @Now)
+	(@DomainId, @NameId, 1, 1, @Now, 1)
 SELECT @UserId = SCOPE_IDENTITY();
 END;
+
 PRINT '									...									';
 
 PRINT 'SEED CONFIGURATION...'
 BEGIN
 INSERT INTO Configuration.ObjectType
-	([Code], [Name], [Description], SystemTime)
-SELECT 'AF', 'FUNCTION', 'Aggregate function (CLR)', @Now
+	([Code], [Name], [Description], SystemUserId, SystemTime, ExecutionId)
+SELECT 'AF', 'FUNCTION', 'Aggregate function (CLR)', 1, @Now, 1
 UNION
-SELECT 'C', 'CONSTRAINT', 'CHECK constraint', @Now
+SELECT 'C', 'CONSTRAINT', 'CHECK constraint', 1, @Now, 1
 UNION
-SELECT 'D', 'DEFAULT_CONSTRAINT', 'DEFAULT (constraint or stand-alone)', @Now
+SELECT 'D', 'DEFAULT_CONSTRAINT', 'DEFAULT (constraint or stand-alone)', 1, @Now, 1
 UNION
-SELECT 'EC', 'CONSTRAINT', 'Edge constraint', @Now
+SELECT 'EC', 'CONSTRAINT', 'Edge constraint',1 , @Now, 1
 UNION
-SELECT 'ET', 'TABLE', 'External Table', @Now
+SELECT 'ET', 'TABLE', 'External Table', 1, @Now, 1
 UNION
-SELECT 'F', 'CONSTRAINT', 'FOREIGN KEY constraint', @Now
+SELECT 'F', 'CONSTRAINT', 'FOREIGN KEY constraint', 1, @Now, 1
 UNION
-SELECT 'FN', 'FUNCTION', 'SQL scalar function', @Now
+SELECT 'FN', 'FUNCTION', 'SQL scalar function', 1, @Now, 1
 UNION
-SELECT 'FS', 'FUNCTION', 'Assembly (CLR) scalar-function', @Now
+SELECT 'FS', 'FUNCTION', 'Assembly (CLR) scalar-function', 1, @Now, 1
 UNION
-SELECT 'FT', 'FUNCTION', 'Assembly (CLR) table-valued function', @Now
+SELECT 'FT', 'FUNCTION', 'Assembly (CLR) table-valued function', 1, @Now, 1
 UNION
-SELECT 'IF', 'FUNCTION', 'SQL inline table-valued function', @Now
+SELECT 'IF', 'FUNCTION', 'SQL inline table-valued function', 1, @Now, 1
 UNION
-SELECT 'IT', 'INTERNAL_TABLE', 'Internal table', @Now
+SELECT 'IT', 'INTERNAL_TABLE', 'Internal table', 1, @Now, 1
 UNION
-SELECT 'MSSQL', 'MS_SQL_SERVER', 'Microsoft SQL Server', @Now
+SELECT 'MSSQL', 'MS_SQL_SERVER', 'Microsoft SQL Server', 1, @Now, 1
 UNION
-SELECT 'NetBIOS', 'NetBIOS', 'NetBIOS name of machine', @Now
+SELECT 'NetBIOS', 'NetBIOS', 'NetBIOS name of machine', 1, @Now, 1
 UNION
-SELECT 'P', 'SQL_STORED_PROCEDURE', 'Stored Procedure', @Now
+SELECT 'P', 'SQL_STORED_PROCEDURE', 'Stored Procedure', 1, @Now, 1
 UNION
-SELECT 'PC', 'PROCEDURE', 'Assembly (CLR) stored-procedure', @Now
+SELECT 'PC', 'PROCEDURE', 'Assembly (CLR) stored-procedure', 1, @Now, 1
 UNION
-SELECT 'PG', 'GUIDE', 'Plan guide', @Now
+SELECT 'PG', 'GUIDE', 'Plan guide', 1, @Now, 1
 UNION
-SELECT 'PK', 'PRIMARY_KEY_CONSTRAINT', 'Primary key constraint', @Now
+SELECT 'PK', 'PRIMARY_KEY_CONSTRAINT', 'Primary key constraint', 1, @Now, 1
 UNION
-SELECT 'R', 'RULE', 'Rule (old-style, stand-alone)', @Now
+SELECT 'R', 'RULE', 'Rule (old-style, stand-alone)', 1, @Now, 1
 UNION
-SELECT 'RF', 'PROCEDURE', 'Replication-filter-procedure', @Now
+SELECT 'RF', 'PROCEDURE', 'Replication-filter-procedure', 1, @Now, 1
 UNION
-SELECT 'S', 'SYSTEM_TABLE', 'System table', @Now
+SELECT 'S', 'SYSTEM_TABLE', 'System table', 1, @Now, 1
 UNION
-SELECT 'SC', 'SCRIPT', 'Scripting', @Now
+SELECT 'SC', 'SCRIPT', 'Scripting', 1, @Now, 1
 UNION
-SELECT 'SN', 'SYNONYM', 'Synonym', @Now
+SELECT 'SN', 'SYNONYM', 'Synonym', 1, @Now, 1
 UNION
-SELECT 'SO', 'SEQUENCE', 'Sequence object', @Now
+SELECT 'SO', 'SEQUENCE', 'Sequence object', 1, @Now, 1
 UNION
-SELECT 'SQ', 'SERVICE_QUEUE', 'Service queue', @Now
+SELECT 'SQ', 'SERVICE_QUEUE', 'Service queue', 1, @Now, 1
 UNION
-SELECT 'ST', 'STATS_TREE', 'STATS_TREE', @Now
+SELECT 'ST', 'STATS_TREE', 'STATS_TREE', 1, @Now, 1
 UNION
-SELECT 'TA', 'TRIGGER', 'Assembly (CLR) DML trigger', @Now
+SELECT 'TA', 'TRIGGER', 'Assembly (CLR) DML trigger', 1, @Now, 1
 UNION
-SELECT 'TF', 'SQL_TABLE_VALUED_FUNCTION', 'SQL table-valued-function', @Now
+SELECT 'TF', 'SQL_TABLE_VALUED_FUNCTION', 'SQL table-valued-function', 1, @Now, 1
 UNION
-SELECT 'TR', 'SQL_TRIGGER', 'SQL trigger', @Now
+SELECT 'TR', 'SQL_TRIGGER', 'SQL trigger', 1, @Now, 1
 UNION
-SELECT 'TT', 'TYPE_TABLE', 'Type table', @Now
+SELECT 'TT', 'TYPE_TABLE', 'Type table', 1, @Now, 1
 UNION
-SELECT 'U', 'USER_TABLE', 'User table', @Now
+SELECT 'U', 'USER_TABLE', 'User table', 1, @Now, 1
 UNION
-SELECT 'UQ', 'UNIQUE_CONSTRAINT', 'Unique constraint', @Now
+SELECT 'UQ', 'UNIQUE_CONSTRAINT', 'Unique constraint', 1, @Now, 1
 UNION
-SELECT 'V', 'VIEW', 'View', @Now
+SELECT 'V', 'VIEW', 'View', 1, @Now, 1
 UNION
-SELECT 'X', 'PROCEDURE', 'Extended stored procedure', @Now
+SELECT 'X', 'PROCEDURE', 'Extended stored procedure', 1, @Now, 1
 --SELECT o.type, o.type_desc
 --	FROM sys.objects o
 --GROUP BY o.type, o.type_desc ORDER BY o.type
@@ -1406,9 +1446,9 @@ SELECT @ObjectTypeId = ObjectTypeId FROM Configuration.ObjectType WHERE [Code] =
 --After the first record, the parent Id can be NULL if creating a top-level 
 --record where parent id and the PK are the same value.
 INSERT INTO Configuration.[Object]
-	(ParentObjectId, NameId, ObjectTypeId, SystemTime, SystemUserId)
+	(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime)
 VALUES
-	(1, @NameId, @ObjectTypeId, @Now, @UserId)
+	(1, @NameId, @ObjectTypeId, @UserId, @Now)
 SELECT @ObjectId = ObjectId FROM Configuration.[Object] WHERE NameId = @NameId AND ParentObjectId = ObjectId;
 END;
 PRINT '			**Auditing-Initial Seeding**'
