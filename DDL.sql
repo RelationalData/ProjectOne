@@ -396,6 +396,7 @@ CREATE TABLE Configuration.[Status](
 	[Value]			sysname							NOT NULL,
 	SystemUserId	smallint	DEFAULT 1			NOT NULL,
 	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int								NOT NULL,
 CONSTRAINT [PK_ConfigurationStatus] PRIMARY KEY CLUSTERED 
 	(StatusId ASC)
 ON Auditing,
@@ -420,7 +421,7 @@ CREATE TABLE Configuration.ObjectType(
 	[Description]	Description256										NOT NULL,
 	SystemUserId	smallint		DEFAULT 1							NOT NULL,
 	SystemTime		datetime2		DEFAULT GETDATE()					NOT NULL,
-	ExecutionId		int												NOT NULL,
+	ExecutionId		int													NOT NULL,
 CONSTRAINT [PK_ConfigurationObjectType] PRIMARY KEY CLUSTERED 
 	(ObjectTypeId ASC)
 ON Auditing,
@@ -435,10 +436,11 @@ GO
 --VARCHAR(8) COLLATE Latin1_General_CI_AS_KS_WS NOT NULL
 
 CREATE TABLE Configuration.[Name](
-	NameId			int			IDENTITY(1,1)		NOT NULL,
-	[Value]			sysname							NOT NULL,
-	SystemUserId	smallint	DEFAULT 1			NOT NULL,
-	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	NameId			int			IDENTITY(1,1)			NOT NULL,
+	[Value]			sysname								NOT NULL,
+	SystemUserId	smallint		DEFAULT 1			NOT NULL,
+	SystemTime		datetime2		DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int									NOT NULL,
 CONSTRAINT [PK_ConfigurationName] PRIMARY KEY CLUSTERED 
 	(NameId ASC)
 ON Auditing,
@@ -447,12 +449,13 @@ CONSTRAINT [AK_ConfigurationName] UNIQUE NONCLUSTERED
 ON Auditing) ON Auditing;
 GO
 CREATE TABLE Configuration.[Object](
-	ObjectId		int			IDENTITY(1,1)		NOT NULL,
-	ParentObjectId	int								NOT NULL,
-	NameId			int								NOT NULL,
-	ObjectTypeId	tinyint							NOT NULL,
-	SystemUserId	smallint	DEFAULT 1			NOT NULL,
-	SystemTime		datetime2	DEFAULT GETDATE()	NOT NULL,
+	ObjectId		int			IDENTITY(1,1)			NOT NULL,
+	ParentObjectId	int									NOT NULL,
+	NameId			int									NOT NULL,
+	ObjectTypeId	tinyint								NOT NULL,
+	SystemUserId	smallint		DEFAULT 1			NOT NULL,
+	SystemTime		datetime2		DEFAULT GETDATE()	NOT NULL,
+	ExecutionId		int									NOT NULL,
 CONSTRAINT [PK_ConfiguratioObject] PRIMARY KEY CLUSTERED 
 	(ObjectId ASC)
 ON Auditing,
@@ -475,8 +478,8 @@ BEGIN
 		SELECT @ParentObjectId = @ParentObjectId + 1;
 		END
 	INSERT INTO Configuration.[Object]
-		(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime)
-	SELECT	@ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime
+		(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime, ExecutionId)
+	SELECT	@ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime, ExecutionId
 		FROM inserted
 END
 GO
@@ -579,8 +582,8 @@ BEGIN
 		SELECT @ParentPlaceId = @ParentPlaceId + 1;
 		END
 		INSERT INTO Geographic.Place
-			(ParentPlaceId, NameId, AbbreviationNameId, SystemUserId, SystemTime)
-		SELECT	@ParentPlaceId, NameId, AbbreviationNameId, SystemUserId, SystemTime
+			(ParentPlaceId, NameId, AbbreviationNameId, SystemUserId, SystemTime, ExecutionId)
+		SELECT	@ParentPlaceId, NameId, AbbreviationNameId, SystemUserId, SystemTime, ExecutionId
 			FROM inserted
 END
 GO
@@ -662,8 +665,8 @@ BEGIN
 		SELECT @ParentOrganizationId = @ParentOrganizationId + 1;
 		END
 	INSERT INTO Institution.Organization
-		(ParentOrganizationId, NameId, LevelId, Active, SystemUserId, SystemTime)
-	SELECT	@ParentOrganizationId, NameId, LevelId, Active, SystemUserId, SystemTime
+		(ParentOrganizationId, NameId, LevelId, Active, SystemUserId, SystemTime, ExecutionId)
+	SELECT	@ParentOrganizationId, NameId, LevelId, Active, SystemUserId, SystemTime, ExecutionId
 		FROM inserted
 END
 GO
@@ -823,8 +826,8 @@ BEGIN
 			AND	i.DeliveryLineId = ladl.DeliveryLineId
 	WHERE	ladl.[Current] = 1;
 	INSERT INTO Postal.[AddressDeliveryLine]
-		(AddressId, DeliveryLineId, ValidTime, Active, [Current], SystemUserId, SystemTime)
-	SELECT	AddressId, DeliveryLineId, ValidTime, Active, 1, SystemUserId, SystemTime
+		(AddressId, DeliveryLineId, ValidTime, Active, [Current], SystemUserId, SystemTime, ExecutionId)
+	SELECT	AddressId, DeliveryLineId, ValidTime, Active, 1, SystemUserId, SystemTime, ExecutionId
 		FROM inserted;
 END;
 GO
@@ -923,8 +926,8 @@ BEGIN
 		ON		i.UserId = sug.UserId
 			AND	i.GroupId = sug.GroupId
 	INSERT INTO Security.UserGroup
-		(UserId, GroupId, ValidTime, Active, [Current], SystemUserId, SystemTime)
-	SELECT	UserId, GroupId, ValidTime, Active, 1, SystemUserId, SystemTime
+		(UserId, GroupId, ValidTime, Active, [Current], SystemUserId, SystemTime, ExecutionId)
+	SELECT	UserId, GroupId, ValidTime, Active, 1, SystemUserId, SystemTime, ExecutionId
 		FROM inserted;
 END;
 GO
@@ -1069,8 +1072,8 @@ BEGIN
 			AND	i.LabelUseId = ul.LabelUseId
 			AND	i.SortOrder = ul.SortOrder
 	INSERT INTO Telecom.UrlLabel
-		(UrlId, LabelId, LabelUseId, SortOrder, ValidTime, Active, [Current], SystemUserId, SystemTime)
-	SELECT	UrlId, LabelId, LabelUseId, SortOrder, ValidTime, Active, 1, SystemUserId, SystemTime
+		(UrlId, LabelId, LabelUseId, SortOrder, ValidTime, Active, [Current], SystemUserId, SystemTime, ExecutionId)
+	SELECT	UrlId, LabelId, LabelUseId, SortOrder, ValidTime, Active, 1, SystemUserId, SystemTime, ExecutionId
 		FROM inserted;
 END;
 GO
@@ -1409,46 +1412,48 @@ SELECT 'X', 'PROCEDURE', 'Extended stored procedure', 1, @Now, 1
 ----Latin1_General_CI_AS_KS_WS
 
 INSERT INTO Configuration.[Status]
-	([Value], SystemTime, SystemUserId)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('Succeeded', @Now, @UserId)
+	('Succeeded', @UserId, @Now, 1)
 INSERT INTO Configuration.[Status]
-	([Value], SystemTime, SystemUserId)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('Failed', @Now, @UserId)
+	('Failed', @UserId, @Now, 1)
 INSERT INTO Configuration.[Status]
-	([Value], SystemTime, SystemUserId)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('Processing', @Now, @UserId)
+	('Processing', @UserId, @Now, 1)
 INSERT INTO Configuration.[Status]
-	([Value], SystemTime, SystemUserId)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('Caution', @Now, @UserId)
+	('Caution', @UserId, @Now, 1)
 INSERT INTO Configuration.[Status]
-	([Value], SystemTime, SystemUserId)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('Information', @Now, @UserId)
+	('Information', @UserId, @Now, 1)
 INSERT INTO Configuration.[Status]
-	([Value], SystemTime, SystemUserId)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('Unknown', @Now, @UserId)
+	('Unknown', @UserId, @Now, 1)
 PRINT '									...									';
 END;
 BEGIN
 INSERT INTO Configuration.[Name]
-	([Value], SystemUserId, SystemTime)
+	([Value], SystemUserId, SystemTime, ExecutionId)
 VALUES
-	('DDL', @UserId, @Now)
+	('DDL', @UserId, @Now, 1)
 SELECT @NameId = SCOPE_IDENTITY();
 SELECT @ObjectTypeId = ObjectTypeId FROM Configuration.ObjectType WHERE [Code] = 'SC';
 --When creating the first record in a tables with a reciprocal relationship,
 --pass the parent Id value 1 to avoid the FK violation
 --After the first record, the parent Id can be NULL if creating a top-level 
 --record where parent id and the PK are the same value.
+END;
+BEGIN
 INSERT INTO Configuration.[Object]
-	(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime)
+	(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime, ExecutionId)
 VALUES
-	(1, @NameId, @ObjectTypeId, @UserId, @Now)
+	(1, @NameId, @ObjectTypeId, @UserId, @Now, 1)
 SELECT @ObjectId = ObjectId FROM Configuration.[Object] WHERE NameId = @NameId AND ParentObjectId = ObjectId;
 END;
 PRINT '			**Auditing-Initial Seeding**'
