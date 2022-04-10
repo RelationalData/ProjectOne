@@ -46,9 +46,9 @@ WHERE		[User] = @User
 IF NOT EXISTS(SELECT 1 FROM Configuration.[Name] WHERE [Value] = 'Programmability')
 	BEGIN
 	INSERT INTO Configuration.[Name]
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		('Programmability', @UserId, @Now)
+		('Programmability', @UserId, @Now, 3)
 	SELECT @NameId = SCOPE_IDENTITY();
 	END
 ELSE
@@ -59,9 +59,9 @@ IF NOT EXISTS(SELECT 1 FROM Configuration.[Object] WHERE NameId = @NameId AND Pa
 	BEGIN
 	SELECT @ObjectTypeId = ObjectTypeId FROM Configuration.ObjectType WHERE [Code] = 'SC';
 	INSERT INTO Configuration.[Object]
-		(ParentObjectId, NameId, ObjectTypeId, SystemTime, SystemUserId)
+		(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(NULL, @NameId, @ObjectTypeId, @Now, @UserId)
+		(NULL, @NameId, @ObjectTypeId, @UserId, @Now, 3)
 	SELECT @ObjectId = ObjectId FROM Configuration.[Object] WHERE NameId = @NameId AND ParentObjectId = ObjectId;
 	END
 ELSE
@@ -400,7 +400,7 @@ GO
 PRINT '			CREATE PROCEDURE [Security].NameInsert'
 GO
 CREATE PROCEDURE [Security].NameInsert
-	(@Name sysname, @NameId int output)
+	(@Name sysname, @SystemUserId smallint, @ExecutionId int, @NameId int output)
 AS
 /*********************************************************************************************************************
 Object:			Security.NameInsert
@@ -422,9 +422,9 @@ IF NOT EXISTS(SELECT 1
 		WHERE	[Value] = @Name)
 	BEGIN
 	INSERT INTO [Security].[Name]
-		([Value], SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@Name, @Now)
+		(@Name, @SystemUserId, @Now, @ExecutionId)
 	SELECT @NameId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -438,7 +438,7 @@ GO
 PRINT '			CREATE PROCEDURE [Security].DomainInsert'
 GO
 CREATE PROCEDURE [Security].DomainInsert
-	(@DomainId int, @Domain sysname)
+	(@DomainId int, @Domain sysname, @SystemUserId int, @ExecutionId int)
 AS
 /*********************************************************************************************************************
 Object:			Security.DomainInsert
@@ -458,15 +458,15 @@ IF NOT EXISTS(SELECT 1
 		WHERE	[Name] = @Domain)
 	BEGIN
 	INSERT INTO [Security].Domain
-		(DomainId, [Name], SystemTime)
+		(DomainId, [Name], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@DomainId, @Domain, @Now)
+		(@DomainId, @Domain, @SystemUserId, @Now, @ExecutionId)
 	END
 GO
 PRINT '			CREATE PROCEDURE [Security].GroupInsert'
 GO
 CREATE PROCEDURE [Security].GroupInsert
-	(@DomainId int, @NameId int, @Active bit, @SystemUserId int, @GroupId smallint output)
+	(@DomainId int, @NameId int, @Active bit, @SystemUserId int, @ExecutionId int, @GroupId smallint output)
 AS
 /*********************************************************************************************************************
 Object:			Security.GroupInsert
@@ -489,9 +489,9 @@ IF NOT EXISTS(SELECT 1
 				AND	NameId = @NameId)
 	BEGIN
 	INSERT INTO [Security].[Group]
-		(DomainId, NameId, Active, SystemUserId, SystemTime)
+		(DomainId, NameId, Active, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@DomainId, @NameId, @Active, @SystemUserId, @Now)
+		(@DomainId, @NameId, @Active, @SystemUserId, @Now, @ExecutionId)
 	SELECT @GroupId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -505,7 +505,7 @@ GO
 PRINT '			CREATE PROCEDURE [Security].UserInsert'
 GO
 CREATE PROCEDURE [Security].UserInsert
-	(@DomainId int, @NameId int, @Active bit, @SystemUserId int = NULL, @UserId int output)
+	(@DomainId int, @NameId int, @Active bit, @SystemUserId int, @ExecutionId int, @UserId int output)
 AS
 /*********************************************************************************************************************
 Object:			Security.UserInsert
@@ -545,9 +545,9 @@ IF NOT EXISTS(SELECT 1
 			END
 		END
 	INSERT INTO [Security].[User]
-		(DomainId, NameId, Active, SystemUserId, SystemTime)
+		(DomainId, NameId, Active, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@DomainId, @NameId, @Active, @SystemUserId, @Now)
+		(@DomainId, @NameId, @Active, @SystemUserId, @Now, @ExecutionId)
 	SELECT @UserId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -561,7 +561,7 @@ GO
 PRINT '			CREATE PROCEDURE [Security].UserCreate'
 GO
 CREATE PROCEDURE [Security].UserCreate
-	(@DomainId int, @UserName sysname, @Active bit, @SystemUserId int = NULL, @UserId int output)
+	(@DomainId int, @UserName sysname, @Active bit, @SystemUserId int, @ExecutionId int, @UserId int output)
 AS
 /*********************************************************************************************************************
 Object:			Security.UserCreate
@@ -578,14 +578,14 @@ DECLARE @Now datetime, @Count int, @NameId int;
 
 SELECT @Now = GETDATE()
 
-EXEC Security.NameInsert @UserName, @NameId output
-EXEC Security.UserInsert @DomainId, @NameId, @ACtive, @SystemUserId, @UserId output
+EXEC Security.NameInsert @UserName, @SystemUserId, @ExecutionId, @NameId output
+EXEC Security.UserInsert @DomainId, @NameId, @Active, @SystemUserId, @ExecutionId, @UserId output
 
 GO
 PRINT '			CREATE PROCEDURE [Security].UserGroupInsert'
 GO
 CREATE PROCEDURE [Security].UserGroupInsert
-	(@UserId smallint, @GroupId smallint, @ValidTime smalldatetime, @Active bit, @SystemUserId smallint)
+	(@UserId smallint, @GroupId smallint, @ValidTime smalldatetime, @Active bit, @SystemUserId smallint, @ExecutionId int)
 AS
 /*********************************************************************************************************************
 Object:			Security.UserGroupInsert
@@ -610,9 +610,9 @@ IF NOT EXISTS(SELECT 1
 					AND	[Current] = 1)
 	BEGIN
 	INSERT INTO [Security].UserGroup
-		(UserId, GroupId, ValidTime, [Active], [Current], SystemUserId, SystemTime)
+		(UserId, GroupId, ValidTime, [Active], [Current], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@UserId, @GroupId, @ValidTime, @Active, 1, @SystemUserId, @Now)
+		(@UserId, @GroupId, @ValidTime, @Active, 1, @SystemUserId, @Now, @ExecutionId)
 	END
 GO
 PRINT '									...									';
@@ -661,7 +661,8 @@ SELECT	e.ParentExecutionId, e.ExecutionId, e.EventName,
 	FROM Auditing.Executions e
 INNER JOIN Security.[User] u
 	ON	e.SystemUserId = u.UserId
-ORDER BY e.ExecutionId DESC, e.SystemTime DESC
+WHERE		e.ExecutionId = @ExecutionId
+	ORDER BY e.ExecutionId DESC, e.SystemTime DESC
 GO
 CREATE PROCEDURE Auditing.ExecutionDescriptionSelect
 	(@ExecutionId int, @SystemUserId int)
@@ -812,7 +813,7 @@ GO
 PRINT '			CREATE PROCEDURE Configuration.NameInsert'
 GO
 CREATE PROCEDURE Configuration.NameInsert
-	(@Name sysname, @SystemUserId int, @NameId int output)
+	(@Name sysname, @SystemUserId int, @ExecutionId int, @NameId int output)
 AS
 /**********************************************************************************************************************
 Object:			Configuration.NameInsert
@@ -828,9 +829,9 @@ IF NOT EXISTS(SELECT 1
 			WHERE		[Value] = @Name)
 	BEGIN
 	INSERT INTO Configuration.[Name]
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@Name, @SystemUserId, @Now)
+		(@Name, @SystemUserId, @Now, @ExecutionId)
 	SELECT @NameId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -843,7 +844,7 @@ GO
 PRINT '			CREATE PROCEDURE Configuration.ObjectInsert'
 GO
 CREATE PROCEDURE Configuration.ObjectInsert
-	(@ParentObjectId int, @NameId int, @ObjectTypeId tinyint, @SystemUserId int, @ObjectId int output)
+	(@ParentObjectId int, @NameId int, @ObjectTypeId tinyint, @SystemUserId int, @ExecutionId int, @ObjectId int output)
 AS
 /**********************************************************************************************************************
 Object:			Configuration.ObjectInsert
@@ -860,9 +861,9 @@ IF NOT EXISTS(SELECT 1
 					AND	NameId = @NameId)
 	BEGIN
 	INSERT INTO Configuration.[Object]
-		(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime)
+		(ParentObjectId, NameId, ObjectTypeId, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@ParentObjectId, @NameId, @ObjectTypeId, @SystemUserId, @Now)
+		(@ParentObjectId, @NameId, @ObjectTypeId, @SystemUserId, @Now, @ExecutionId)
 	SELECT @ObjectId = SCOPE_IDENTITY();
 	END
 ELSE
@@ -876,7 +877,8 @@ GO
 PRINT '			CREATE PROCEDURE Configuration.ObjectCreate'
 GO
 CREATE PROCEDURE Configuration.ObjectCreate
-	(@ParentObjectId int, @Object sysname, @ObjectTypeId tinyint, @SystemUserId int, @ObjectId int output)
+	(@ParentObjectId int, @Object sysname, @ObjectTypeId tinyint,
+	@SystemUserId int, @ExecutionId int, @ObjectId int output)
 AS
 /**********************************************************************************************************************
 Object:			Configuration.ObjectCreate
@@ -888,16 +890,16 @@ Version:		3 August, 2021 CE
 **********************************************************************************************************************/
 DECLARE @NameId int;
 
-EXEC Configuration.NameInsert @Object, @SystemUserId, @NameId output;
+EXEC Configuration.NameInsert @Object, @SystemUserId, @ExecutionId, @NameId output;
 
-EXEC Configuration.ObjectInsert @ParentObjectId, @NameId, @ObjectTypeId, @SystemUserId, @ObjectId output;
+EXEC Configuration.ObjectInsert @ParentObjectId, @NameId, @ObjectTypeId, @SystemUserId, @ExecutionId, @ObjectId output;
 GO
 PRINT '									...									';
 GO
 PRINT '			CREATE PROCEDURE Configuration.ObjectTypeInsert'
 GO
 CREATE PROCEDURE Configuration.ObjectTypeInsert
-	(@Code char(2), @ObjectType sysname, @Description Description256, @ObjectTypeId tinyint output)
+	(@Code char(2), @ObjectType sysname, @Description Description256, @ExecutionId int, @ObjectTypeId tinyint output)
 AS
 /**********************************************************************************************************************
 Object:			Configuration.ObjectTypeInsert
@@ -913,9 +915,9 @@ IF NOT EXISTS(SELECT 1
 			WHERE	[Name] = @ObjectType)
 	BEGIN
 	INSERT INTO Configuration.ObjectType
-		([Code], [Name], [Description], SystemTime)
+		([Code], [Name], [Description], SystemTime, ExecutionId)
 	VALUES
-		(@Code, @ObjectType, @Description, @Now)
+		(@Code, @ObjectType, @Description, @Now, @ExecutionId)
 	SELECT @ObjectTypeId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -928,7 +930,7 @@ GO
 PRINT '			CREATE PROCEDURE Configuration.ObjectStatusInsert'
 GO
 CREATE PROCEDURE Configuration.StatusInsert
-	(@Status sysname, @SystemUserId int, @StatusId tinyint output)
+	(@Status sysname, @SystemUserId int, @ExecutionId int, @StatusId tinyint output)
 AS
 /**********************************************************************************************************************
 Object:			Configuration.StatusInsert
@@ -944,9 +946,9 @@ IF NOT EXISTS(SELECT 1
 			WHERE	[Value] = @Status)
 	BEGIN
 	INSERT INTO Configuration.[Status]
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@Status, @SystemUserId, @Now)
+		(@Status, @SystemUserId, @Now, @ExecutionId)
 	SELECT @StatusId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -962,7 +964,7 @@ GO
 PRINT '			CREATE PROCEDURE Geographic.[Name]'
 GO
 CREATE PROCEDURE Geographic.NameInsert
-	(@Name Name64, @SystemUserId int, @NameId int output)
+	(@Name Name64, @SystemUserId int, @ExecutionId int, @NameId int output)
 AS
 /**********************************************************************************************************************
 Object:			Geographic.NameInsert
@@ -981,9 +983,9 @@ IF NOT EXISTS(SELECT 1
 				WHERE	[Value] = @Name)
 	BEGIN
 	INSERT INTO Geographic.[Name]
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@Name, @SystemUserId, @Now)
+		(@Name, @SystemUserId, @Now, @ExecutionId)
 	SELECT @NameId = SCOPE_IDENTITY();
 	END
 ELSE
@@ -994,7 +996,7 @@ ELSE
 	END;
 GO
 CREATE PROCEDURE Geographic.PlaceInsert
-	(@ParentPlaceId int, @NameId int, @AbbreviationNameId int, @SystemUserId int, @PlaceId int output)
+	(@ParentPlaceId int, @NameId int, @AbbreviationNameId int, @SystemUserId int, @ExecutionId int, @PlaceId int output)
 AS
 /**********************************************************************************************************************
 Object:			Individual.PlaceInsert
@@ -1014,9 +1016,9 @@ IF NOT EXISTS(SELECT 1
 						AND	NameId = @NameId)
 	BEGIN
 	INSERT INTO Geographic.Place
-		(ParentPlaceId, NameId, AbbreviationNameId, SystemUserId, SystemTime)
+		(ParentPlaceId, NameId, AbbreviationNameId, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@ParentPlaceId, @NameId, @AbbreviationNameId, @SystemUserId, @Now)
+		(@ParentPlaceId, @NameId, @AbbreviationNameId, @SystemUserId, @Now, @ExecutionId)
 	SELECT @PlaceId = SCOPE_IDENTITY();
 	END
 ELSE
@@ -1035,7 +1037,7 @@ GO
 PRINT '			CREATE PROCEDURE Person.NameCategoryInsert'
 GO
 CREATE PROCEDURE Person.NameCategoryInsert
-	(@NameCategory Name32, @SystemUserId int, @NameCategoryId tinyint output)
+	(@NameCategory Name32, @SystemUserId int, @ExecutionId int, @NameCategoryId tinyint output)
 AS
 /**********************************************************************************************************************
 Object:			Person.NameCategoryInsert
@@ -1054,9 +1056,9 @@ IF NOT EXISTS(SELECT 1
 		WHERE	[Value] = @NameCategory)
 	BEGIN
 	INSERT INTO Person.NameCategory
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@NameCategory, @SystemUserId, @Now)
+		(@NameCategory, @SystemUserId, @Now, @ExecutionId)
 	SELECT @NameCategoryId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -1069,7 +1071,7 @@ GO
 PRINT '			CREATE PROCEDURE Individual.NameElementInsert'
 GO
 CREATE PROCEDURE Person.NameElementInsert
-	(@NameElement Name64, @SystemUserId int, @NameElementId tinyint output)
+	(@NameElement Name64, @SystemUserId int, @ExecutionId int, @NameElementId tinyint output)
 AS
 /**********************************************************************************************************************
 Object:			Person.NameElementInsert
@@ -1090,9 +1092,9 @@ IF NOT EXISTS(SELECT 1
 		WHERE	[Value] = @NameElement)
 	BEGIN
 	INSERT INTO Person.NameElement
-		([Value], SystemUserId, SystemTime)
+		([Value], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@NameElement, @SystemUserId, @Now)
+		(@NameElement, @SystemUserId, @Now, @ExecutionId)
 	SELECT @NameElementId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -1105,7 +1107,7 @@ GO
 PRINT '			CREATE PROCEDURE Individual.PersonInsert'
 GO
 CREATE PROCEDURE Person.IndividualInsert
-	(@NameHASH varbinary(32), @SystemUserId int, @IndividualId int output)
+	(@NameHASH varbinary(32), @SystemUserId int, @ExecutionId int,  @IndividualId int output)
 AS
 /**********************************************************************************************************************
 Object:			Person.IndividualInsert
@@ -1126,9 +1128,9 @@ IF NOT EXISTS(SELECT 1
 		WHERE	HashName = @NameHASH)
 	BEGIN
 	INSERT INTO Person.Individual
-		(HashName, SystemUserId, SystemTime)
+		(HashName, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@NameHASH, @SystemUserId, @Now)
+		(@NameHASH, @SystemUserId, @Now, @ExecutionId)
 	SELECT @IndividualId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -1143,7 +1145,7 @@ PRINT '			CREATE PROCEDURE Individual.PersonNameElementInsert'
 GO
 CREATE PROCEDURE Person.IndividualNameElementInsert
 	(@IndividualId int, @NameElementId int, @NameCategoryId tinyint,
-	@SortOrder tinyint, @Active bit = 1, @SystemUserId int)
+	@SortOrder tinyint, @Active bit = 1, @SystemUserId int, @ExecutionId int)
 AS
 /**********************************************************************************************************************
 Object:			Person.IndividualNameElementInsert
@@ -1170,9 +1172,9 @@ IF NOT EXISTS(SELECT 1
 				AND	[Current] = 1)
 	BEGIN
 	INSERT INTO	Person.IndividualNameElement
-		(IndividualId, NameElementId, NameCategoryId, SortOrder, Active, [Current], SystemUserId, SystemTime)
+		(IndividualId, NameElementId, NameCategoryId, SortOrder, Active, [Current], SystemUserId, ExecutionId, SystemTime)
 	VALUES
-		(@IndividualId, @NameElementId, @NameCategoryId, @SortOrder, @Active, 1, @SystemUserId, @Now)
+		(@IndividualId, @NameElementId, @NameCategoryId, @SortOrder, @Active, 1, @SystemUserId, @ExecutionId, @Now)
 	END;
 GO
 PRINT '			CREATE PROCEDURE Person.IndividualCreate'
@@ -1180,7 +1182,7 @@ GO
 CREATE PROCEDURE Person.IndividualCreate
 	(@Names dbo.PersonNames READONLY, @NameCategoryId tinyint,
 	@Domain nvarchar(253), @UserName sysname, 
-	@SystemUserId smallint, @Active bit, @UserId int output, @IndividualId int output)
+	@SystemUserId smallint, @Active bit, @UserId smallint output, @ExecutionId int, @IndividualId int output)
 AS
 /**********************************************************************************************************************
 Object:			Person.IndividualCreate
@@ -1217,8 +1219,8 @@ DECLARE @Now datetime = GETDATE();
 DECLARE @DomainId tinyint, @Binary32HASH varbinary(32), @StringHASH nvarchar(max);
 DECLARE @Count tinyint, @Row tinyint, @NameElement Name64, @NameElementId int;
 
-EXEC Security.DomainInsert @Domain, @DomainId output;
-EXEC Security.UserCreate @DomainId, @UserName, @Active, @SystemUserId, @UserId output
+EXEC Security.DomainInsert @Domain, @SystemUserId, @ExecutionId, @DomainId output;
+EXEC Security.UserCreate @DomainId, @UserName, @Active, @SystemUserId, @ExecutionId, @UserId output
 
 SELECT @Count = COUNT(1) FROM @Names;
 SET @Row = 1;
@@ -1229,15 +1231,15 @@ GROUP BY [id], NameElement
 
 SELECT @StringHASH = @StringHASH + @Domain + @UserName;
 SELECT @Binary32HASH = HASHBYTES('SHA2_256',CONVERT(nvarchar(256), @StringHASH));
-EXEC Person.IndividualInsert @Binary32HASH, @SystemUserId, @IndividualId output;
+EXEC Person.IndividualInsert @Binary32HASH, @SystemUserId, @ExecutionId, @IndividualId output;
 
 WHILE @Count >= @Row
 	BEGIN
 	SELECT	@NameElement = NameElement
 		FROM @Names
 	WHERE	[id] = @Row;
-	EXEC Person.NameElementInsert @NameElement, @SystemUserId, @NameElementId output;
-	EXEC Person.IndividualNameElementInsert @IndividualId, @NameElementId, @NameCategoryId, @Row, @Active, @SystemUserId
+	EXEC Person.NameElementInsert @NameElement, @SystemUserId, @ExecutionId, @NameElementId output;
+	EXEC Person.IndividualNameElementInsert @IndividualId, @NameElementId, @NameCategoryId, @Row, @Active, @SystemUserId, @ExecutionId
 
 	SELECT @Row = @Row + 1;
 	END;
@@ -1245,7 +1247,7 @@ GO
 PRINT '			CREATE PROCEDURE Person.IndividualSelect'
 GO
 CREATE PROCEDURE Person.IndividualSelect
-	(@IndividualId int, @NameCategoryId tinyint, @NameDelimiter char(1) = ' ', @Name nvarchar(max) output)
+	(@IndividualId int, @NameCategoryId tinyint, @NameDelimiter char(1) = ' ', @SystemUserId int, @Name nvarchar(max) output)
 AS
 /**********************************************************************************************************************
 Object:			Person.IndividualSelect
@@ -1273,7 +1275,7 @@ GO
 PRINT '			CREATE PROCEDURE Institution.LevelInsert'
 GO
 CREATE PROCEDURE Institution.LevelInsert
-	(@Level Name64, @SystemUserId smallint, @LevelId tinyint output)
+	(@Level Name64, @SystemUserId smallint, @ExecutionId int, @LevelId tinyint output)
 AS
 /*********************************************************************************************************************
 Object:			Insitution.LevelInsert
@@ -1295,9 +1297,9 @@ IF NOT EXISTS(SELECT 1
 			WHERE		[Name] = @Level)
 	BEGIN
 	INSERT INTO Institution.[Level]
-		([Name], SystemUserId, SystemTime)
+		([Name], SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@Level, @SystemUserId, @Now)
+		(@Level, @SystemUserId, @Now, @ExecutionId)
 	SELECT @LevelId = SCOPE_IDENTITY()
 	END
 ELSE
@@ -1310,7 +1312,7 @@ GO
 PRINT '			CREATE PROCEDURE Institution.NameInsert'
 GO
 CREATE PROCEDURE Institution.NameInsert
-	(@Name Name64, @SystemUserId smallint, @NameId tinyint output)
+	(@Name Name64, @SystemUserId smallint, @ExecutionId int, @NameId tinyint output)
 AS
 /*********************************************************************************************************************
 Object:			Insitution.NameInsert
@@ -1348,7 +1350,7 @@ PRINT '			CREATE PROCEDURE Institution.OrganizationInsert'
 GO
 CREATE PROCEDURE Institution.OrganizationInsert
 	(@ParentOrganizationId int = NULL, @NameId int, @LevelId tinyint,
-	@Active bit = 1, @SystemUserId smallint = NULL, @OrganizationId int output)
+	@Active bit = 1, @SystemUserId smallint = NULL, @ExecutionId int, @OrganizationId int output)
 AS
 /*********************************************************************************************************************
 Object:			Insitution.OrganizationInsert
@@ -1371,9 +1373,9 @@ IF NOT EXISTS(SELECT 1
 					AND	NameId = @NameId)
 	BEGIN
 	INSERT INTO Institution.Organization
-		(ParentOrganizationId, NameId, LevelId, Active, SystemUserId, SystemTime)
+		(ParentOrganizationId, NameId, LevelId, Active, SystemUserId, SystemTime, ExecutionId)
 	VALUES
-		(@ParentOrganizationId, @NameId, @LevelId, @Active, @SystemUserId, @Now)
+		(@ParentOrganizationId, @NameId, @LevelId, @Active, @SystemUserId, @Now, @ExecutionId)
 	SELECT @OrganizationId = @@IDENTITY
 	END
 ELSE
@@ -1387,7 +1389,7 @@ GO
 PRINT '			CREATE PROCEDURE Institution.OrganizationCreate'
 GO
 CREATE PROCEDURE Institution.OrganizationCreate
-	(@ParentOrganizationId int, @Organization Name64, @LevelId tinyint, @Active bit, @SystemUserId smallint, @OrganizationId int output)
+	(@ParentOrganizationId int, @Organization Name64, @LevelId tinyint, @Active bit, @SystemUserId smallint, @ExecutionId int, @OrganizationId int output)
 AS
 /*********************************************************************************************************************
 Object:			Insitution.OrganizationCreate
@@ -1403,9 +1405,9 @@ Version:		4 August, 2021 CE
 ====================================DEBUG============================================================================*/
 DECLARE @NameId int;
 
-EXEC Institution.NameInsert @Organization, @SystemUserId, @NameId output;
+EXEC Institution.NameInsert @Organization, @SystemUserId, @ExecutionId, @NameId output;
 --@ParentOrganizationId int = NULL, @NameId int, @LevelId tinyint, @Active bit = 1, @SystemUserId smallint = NULL, @OrganizationId int output)
-EXEC Institution.OrganizationInsert @ParentOrganizationId, @NameId, @LevelId, @Active, @SystemUserId, @OrganizationId output;
+EXEC Institution.OrganizationInsert @ParentOrganizationId, @NameId, @LevelId, @Active, @SystemUserId, @ExecutionId, @OrganizationId output;
 GO
 PRINT '									...									';
 GO
@@ -1415,7 +1417,7 @@ GO
 PRINT '			CREATE PROCEDURE Postal.CodeInsert'
 GO
 CREATE PROCEDURE Postal.CodeInsert
-	(@CodeId int, @CountryPlaceId int, @Code Name16, @SystemUserId int, @IdentityCodeId int output)
+	(@CodeId int, @CountryPlaceId int, @Code Name16, @SystemUserId int, @ExecutionId int, @IdentityCodeId int output)
 AS
 /*********************************************************************************************************************
 Object:			Postal.CodeInsert
