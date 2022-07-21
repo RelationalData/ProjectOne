@@ -1,4 +1,7 @@
 # Implementation scripts
+
+DO NOT USE! This template is still under development and requires accompanying documentation.
+
 T-SQL for creating initial Data Warehouse structures on a Microsoft SQL Server instance.
 The following files optionally create the database, files and filegroups. 
 Once file and filegroups are in place, the scripts drop and create all database objects.
