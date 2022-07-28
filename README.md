@@ -6,8 +6,11 @@
 👀 T-SQL for creating initial Data Warehouse structures on a Microsoft SQL Server instance.
 
 👀 The files contained within this repository will optionally create the database, files and filegroups. 
+
 👀 Once file and filegroups are in place, the scripts drop and create all database objects.
+
 👀 If the @TabulaRasa bit variable is set to 1 in the DDL.sql script, then the entire database is dropped and recreated. Otherwise, the database, fil and filegroups are 👀 left in place, but all other objects below that are dropped and then recreated.
+
 👀 The scripts should be executed in the following order:
     DDL.sql - Data definition language - tables, triggers, materialized views.
     DRI.sql - Declarative referential integrity - foreign key constraints.
