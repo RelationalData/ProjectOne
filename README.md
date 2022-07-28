@@ -19,4 +19,5 @@
         👀DML.sql - Data manipulation language - Initial seeding of tables
 
 💞️ https://datawarehouse.relationaldata.net/
+
 📫 jqa@RelationalData.net
