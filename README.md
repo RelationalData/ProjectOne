@@ -12,9 +12,11 @@
 👀 If the @TabulaRasa bit variable is set to 1 in the DDL.sql script, then the entire database is dropped and recreated. Otherwise, the database, fil and filegroups are 👀 left in place, but all other objects below that are dropped and then recreated.
 
 👀 The scripts should be executed in the following order:
-    DDL.sql - Data definition language - tables, triggers, materialized views.
-    DRI.sql - Declarative referential integrity - foreign key constraints.
-    Programmability.sql - stored procedures, functions, assemblies, et al
-    DML.sql - Data manipulation language - Initial seeding of tables
+    
+        👀DDL.sql - Data definition language - tables, triggers, materialized views.
+        👀DRI.sql - Declarative referential integrity - foreign key constraints.
+        👀Programmability.sql - stored procedures, functions, assemblies, et al
+        👀DML.sql - Data manipulation language - Initial seeding of tables
+
 💞️ https://datawarehouse.relationaldata.net/
 📫 jqa@RelationalData.net
